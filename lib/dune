@@ -1,0 +1,3 @@
+(library
+ (name project_t)
+ (libraries notty-community))

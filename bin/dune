@@ -1,0 +1,4 @@
+(executable
+ (public_name project_t)
+ (name main)
+ (libraries project_t notty-community notty-community.unix))
