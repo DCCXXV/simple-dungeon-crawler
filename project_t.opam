@@ -5,7 +5,7 @@ description:
   "Turn based dungeon crawler with deterministic enemy patterns. Use hazards to kill every enemy and complete floor 3 for victory."
 maintainer: ["Marco Antonio Pérez Neira <marcoantonioperezneira@gmail.com>"]
 authors: ["Marco Antonio Pérez Neira <marcoantonioperezneira@gmail.com>"]
-license: "LICENSE"
+license: "MIT"
 tags: ["game" "ascii"]
 homepage: "https://github.com/DCCXXV/project_t"
 doc: "https://url/to/documentation"

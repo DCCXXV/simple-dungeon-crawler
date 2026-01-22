@@ -11,7 +11,7 @@
 
 (maintainers "Marco Antonio Pérez Neira <marcoantonioperezneira@gmail.com>")
 
-(license LICENSE)
+(license MIT)
 
 (documentation https://url/to/documentation)
 
