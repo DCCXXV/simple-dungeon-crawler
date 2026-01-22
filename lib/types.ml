@@ -20,9 +20,18 @@ type enemy = {
     hp: int;
 }
 
+type projectile_type =
+    | Arrow
+
+type projectile_effect =
+    | Normal
+    | Fire
+
 type projectile = {
     pos: pos;
     direction: direction;
+    typ: projectile_type;
+    effec: projectile_effect;
     owner_id: int;
     owner_type: enemy_type;
 }

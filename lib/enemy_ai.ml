@@ -99,6 +99,7 @@ let move_projectiles projectiles grid player_pos enemies =
             None
         else match Grid.get_tile grid new_pos with
             | Wall -> None
+            | Lava -> Some { p with effec = Fire; pos = new_pos }
             | _ -> Some { p with pos = new_pos }
     ) projectiles
 
@@ -109,7 +110,11 @@ let projectile_hits projectiles grid player_pos enemies =
         let new_pos = Logic.apply_direction p.pos p.direction in
         if Grid.in_bounds grid new_pos then begin
             if new_pos = player_pos then
-                player_damage := !player_damage + 1
+                let p_dmg = match p.effec with
+                | Normal -> 1
+                | Fire -> 3
+                in
+                player_damage := !player_damage + p_dmg
             else
                 List.iter (fun (e : enemy) ->
                     if e.pos = new_pos then
@@ -146,7 +151,7 @@ let archers_shoot enemies projectiles player_pos grid =
                     let spawn_pos = Logic.apply_direction e.pos dir in
                     if Grid.in_bounds grid spawn_pos &&
                        Grid.get_tile grid spawn_pos <> Wall then
-                        { pos = spawn_pos; direction = dir; owner_id = e.id; owner_type = e.enemy_type } :: acc
+                        { pos = spawn_pos; direction = dir; typ = Arrow; effec = Normal ; owner_id = e.id; owner_type = e.enemy_type } :: acc
                     else
                         acc
                 | None -> acc)

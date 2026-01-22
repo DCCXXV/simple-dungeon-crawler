@@ -6,6 +6,7 @@ let c_black = A.rgb_888 ~r:0 ~g:0 ~b:0
 let c_white = A.rgb_888 ~r:255 ~g:255 ~b:255
 let c_gray = A.rgb_888 ~r:80 ~g:80 ~b:80
 let c_cyan = A.rgb_888 ~r:85 ~g:255 ~b:255
+let c_red = A.rgb_888 ~r:255 ~g:0 ~b:0
 
 let wall_attr = A.(fg c_white ++ bg c_black)
 let floor_attr = A.(fg c_gray ++ bg c_black)
@@ -41,13 +42,16 @@ let projectile_attr_for_owner = function
   | Archer -> archer_attr
   | Brute -> brute_attr
 
-let projectile_glyph dir owner_type =
-  let attr = projectile_attr_for_owner owner_type in
-  match dir with
-  | North -> "↑", attr
-  | South -> "↓", attr
-  | East -> "→", attr
-  | West -> "←", attr
+let projectile_glyph dir owner_type effec =
+    let attr = match effec with
+        | Normal -> projectile_attr_for_owner owner_type
+        | Fire -> A.(fg c_red)
+    in
+    match dir with
+    | North -> "↑", attr
+    | South -> "↓", attr
+    | East -> "→", attr
+    | West -> "←", attr
 
 
 let make_entity_map (state : game_state) =
@@ -60,7 +64,7 @@ let make_entity_map (state : game_state) =
   ) state.enemies;
 
   List.iter (fun (p : projectile) ->
-    Hashtbl.add map (p.pos.x, p.pos.y) (`Projectile (p.direction, p.owner_type))
+    Hashtbl.add map (p.pos.x, p.pos.y) (`Projectile (p.direction, p.owner_type, p.effec))
   ) state.projectiles;
 
   map
@@ -76,8 +80,8 @@ let render_cell grid entity_map x y =
   | Some (`Enemy etype) ->
       let glyph, attr = enemy_glyph etype in
       I.string attr glyph
-  | Some (`Projectile (dir, owner_type)) ->
-      let glyph, attr = projectile_glyph dir owner_type in
+  | Some (`Projectile (dir, owner_type, effec)) ->
+      let glyph, attr = projectile_glyph dir owner_type effec in
       I.string attr glyph
   | None ->
       let glyph, attr = tile_glyph tile in
