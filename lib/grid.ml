@@ -51,4 +51,8 @@ let generate width height floor_num =
         if get_tile grid {x; y} = Empty then
           set_tile grid {x; y} Lava;
     done;
+    let x = 1 + Random.int(width - 2) in
+    let y = 1 + Random.int(height - 2) in
+    if get_tile grid {x; y} = Empty then
+        set_tile grid {x; y} Barrel;
     grid

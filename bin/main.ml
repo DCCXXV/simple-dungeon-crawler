@@ -42,6 +42,7 @@ let create_floor floor player =
     player = { player with pos = { x = 5; y = 5 } };
     enemies;
     projectiles = [];
+    aoes = [];
     grid;
     floor;
     turn = 0;
@@ -101,6 +102,11 @@ let () =
 
         let new_state = Project_t.Logic.process_player_action state (Move direction) in
 
+        let target_tile = Project_t.Grid.get_tile state.grid target_pos in
+        (match target_tile with
+         | Barrel -> msgs := { text = "You kick the barrel!"; msg_type = Neutral } :: !msgs
+         | _ -> ());
+
         let env_dmg = state.player.hp - new_state.player.hp in
         if env_dmg > 0 then
           msgs := { text = Printf.sprintf "You take %d damage from hazard!" env_dmg; msg_type = Bad } :: !msgs;
@@ -141,29 +147,61 @@ let () =
                 Some e
         ) new_enemies in
 
-        let moved_projectiles = Project_t.Enemy_ai.move_projectiles
-          new_state.projectiles new_state.grid new_state.player.pos enemies_after_hits in
+        let (moved_projectiles, new_aoes) = Project_t.Enemy_ai.move_projectiles
+          new_state.projectiles [] new_state.grid new_state.player.pos enemies_after_hits in
+
+        let in_aoe_range (a : aoe) pos =
+            abs (a.pos.x - pos.x) <= 1 && abs (a.pos.y - pos.y) <= 1
+        in
+        let aoe_dmg = 3 in
+
+        let aoe_player_dmg = if List.exists (fun a -> in_aoe_range a new_state.player.pos) new_aoes
+            then (msgs := { text = "Barrel explosion hits you for 3 damage!"; msg_type = Bad } :: !msgs; aoe_dmg)
+            else 0
+        in
+
+        let enemies_after_aoe = List.filter_map (fun (e : enemy) ->
+            let hit_by_aoe = List.exists (fun a -> in_aoe_range a e.pos) new_aoes in
+            if hit_by_aoe then
+                let new_hp = e.hp - aoe_dmg in
+                if new_hp <= 0 then begin
+                    msgs := { text = Printf.sprintf "%s is killed by explosion!" (enemy_name e.enemy_type); msg_type = Good } :: !msgs;
+                    None
+                end else begin
+                    msgs := { text = Printf.sprintf "%s takes %d damage from explosion!" (enemy_name e.enemy_type) aoe_dmg; msg_type = Good } :: !msgs;
+                    Some { e with hp = new_hp }
+                end
+            else
+                Some e
+        ) enemies_after_hits in
 
         let old_projectile_count = List.length moved_projectiles in
         let new_projectiles = Project_t.Enemy_ai.archers_shoot
-          enemies_after_hits moved_projectiles new_state.player.pos new_state.grid in
+          enemies_after_aoe moved_projectiles new_state.player.pos new_state.grid in
         let new_arrows = List.length new_projectiles - old_projectile_count in
         if new_arrows > 0 then
           msgs := { text = "Archer shoots an arrow!"; msg_type = Neutral } :: !msgs;
 
-        let melee_hits = Project_t.Enemy_ai.melee_attacks enemies_after_hits new_state.player.pos in
+        let melee_hits = Project_t.Enemy_ai.melee_attacks enemies_after_aoe new_state.player.pos in
         let melee_dmg = List.fold_left (fun acc (etype, dmg) ->
           msgs := { text = Printf.sprintf "%s hits you for %d damage!" (enemy_name etype) dmg; msg_type = Bad } :: !msgs;
           acc + dmg
         ) 0 melee_hits in
 
-        let new_player_hp = new_state.player.hp - player_dmg - melee_dmg in
+        let new_player_hp = new_state.player.hp - player_dmg - melee_dmg - aoe_player_dmg in
         let final_player = { new_state.player with hp = new_player_hp } in
+
+        let remaining_aoes = List.filter_map (fun (a : aoe) ->
+            let new_turns = a.turns_left - 1 in
+            if new_turns < 0 then None
+            else Some { a with turns_left = new_turns }
+        ) new_aoes in
 
         let final_state = { new_state with
           player = final_player;
-          enemies = enemies_after_hits;
+          enemies = enemies_after_aoe;
           projectiles = new_projectiles;
+          aoes = remaining_aoes;
           messages = List.rev !msgs;
         } in
         if final_state.player.hp <= 0 then

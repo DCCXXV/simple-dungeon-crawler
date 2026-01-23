@@ -15,6 +15,10 @@ let is_walkable grid pos =
 let enemy_at_pos (enemies : enemy list) pos =
     List.find_opt (fun (e : enemy) -> e.pos = pos) enemies
 
+let barrel_action state pos dir =
+    Grid.set_tile state.grid pos Empty;
+    { pos = pos; direction = dir; typ = Barrel; effec = Normal; owner_id = 99; owner_type = Goblin } :: state.projectiles
+
 let move_player state dir =
     let new_pos = apply_direction state.player.pos dir in
     if not (is_walkable state.grid new_pos) then
@@ -23,13 +27,15 @@ let move_player state dir =
         state
     else
         let updated_player = { state.player with pos = new_pos } in
-        let final_player = match Grid.get_tile state.grid new_pos with
-            | Spike -> { updated_player with hp = updated_player.hp - 1}
-            | Lava -> { updated_player with hp = updated_player.hp - 2 }
-            | _ -> updated_player
+        let (final_player, final_projectiles) = match Grid.get_tile state.grid new_pos with
+            | Spike -> ({ updated_player with hp = updated_player.hp - 1}, state.projectiles)
+            | Lava -> ({ updated_player with hp = updated_player.hp - 2 }, state.projectiles)
+            | Barrel -> (updated_player, barrel_action state new_pos dir)
+            | _ -> (updated_player, state.projectiles)
         in
         { state with
           player = final_player;
+          projectiles = final_projectiles;
           turn = state.turn + 1 }
 
 let process_player_action state action =

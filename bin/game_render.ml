@@ -7,10 +7,12 @@ let c_white = A.rgb_888 ~r:255 ~g:255 ~b:255
 let c_gray = A.rgb_888 ~r:80 ~g:80 ~b:80
 let c_cyan = A.rgb_888 ~r:85 ~g:255 ~b:255
 let c_red = A.rgb_888 ~r:255 ~g:0 ~b:0
+let c_orange = A.rgb_888 ~r:255 ~g:165 ~b:0
 
 let wall_attr = A.(fg c_white ++ bg c_black)
 let floor_attr = A.(fg c_gray ++ bg c_black)
 let spike_attr = A.(fg (rgb_888 ~r:255 ~g:0 ~b:0) ++ bg c_black)
+let barrel_attr = A.(fg (rgb_888 ~r:139 ~g:69 ~b:19) ++ bg c_black)
 let lava_attr = A.(fg (rgb_888 ~r:255 ~g:0 ~b:0) ++ bg (rgb_888 ~r:139 ~g:0 ~b:0))
 let player_attr = A.(fg (rgb_888 ~r:0 ~g:255 ~b:255) ++ bg c_black)
 let goblin_attr = A.(fg (rgb_888 ~r:0 ~g:255 ~b:0) ++ bg c_black)
@@ -29,6 +31,7 @@ let tile_glyph = function
   | Wall -> "#", wall_attr
   | Spike -> "x", spike_attr
   | Lava -> "~", lava_attr
+  | Barrel -> "o", barrel_attr
 
 let enemy_glyph = function
   | Goblin -> "Ħ", goblin_attr
@@ -42,61 +45,78 @@ let projectile_attr_for_owner = function
   | Archer -> archer_attr
   | Brute -> brute_attr
 
-let projectile_glyph dir owner_type effec =
+let projectile_glyph dir owner_type typ effec =
     let attr = match effec with
         | Normal -> projectile_attr_for_owner owner_type
         | Fire -> A.(fg c_red)
     in
-    match dir with
-    | North -> "↑", attr
-    | South -> "↓", attr
-    | East -> "→", attr
-    | West -> "←", attr
+    match typ with
+    | Arrow ->
+        (match dir with
+        | North -> "↑", attr
+        | South -> "↓", attr
+        | East -> "→", attr
+        | West -> "←", attr)
+    | Barrel ->
+        "o", barrel_attr
 
+let aoe_glyph =
+    "@", A.(fg c_orange)
 
 let make_entity_map (state : game_state) =
-  let map = Hashtbl.create 16 in
+    let map = Hashtbl.create 16 in
 
-  Hashtbl.add map (state.player.pos.x, state.player.pos.y) `Player;
+    Hashtbl.add map (state.player.pos.x, state.player.pos.y) `Player;
 
-  List.iter (fun (e : enemy) ->
-    Hashtbl.add map (e.pos.x, e.pos.y) (`Enemy e.enemy_type)
-  ) state.enemies;
+    List.iter (fun (e : enemy) ->
+        Hashtbl.add map (e.pos.x, e.pos.y) (`Enemy e.enemy_type)
+    ) state.enemies;
 
-  List.iter (fun (p : projectile) ->
-    Hashtbl.add map (p.pos.x, p.pos.y) (`Projectile (p.direction, p.owner_type, p.effec))
-  ) state.projectiles;
+    List.iter (fun (p : projectile) ->
+        Hashtbl.add map (p.pos.x, p.pos.y) (`Projectile (p.direction, p.owner_type, p.typ, p.effec))
+    ) state.projectiles;
+
+    List.iter (fun (a : aoe) ->
+        for dx = -1 to 1 do
+            for dy = -1 to 1 do
+                Hashtbl.add map (a.pos.x + dx, a.pos.y + dy) `Aoe
+            done
+        done
+    ) state.aoes;
 
   map
 
 (* render cell *)
 let render_cell grid entity_map x y =
-  let pos = { x; y } in
-  let tile = Project_t.Grid.get_tile grid pos in
-  match Hashtbl.find_opt entity_map (x, y) with
-  | Some `Player ->
-      let glyph, attr = player_glyph in
-      I.string attr glyph
-  | Some (`Enemy etype) ->
-      let glyph, attr = enemy_glyph etype in
-      I.string attr glyph
-  | Some (`Projectile (dir, owner_type, effec)) ->
-      let glyph, attr = projectile_glyph dir owner_type effec in
-      I.string attr glyph
-  | None ->
-      let glyph, attr = tile_glyph tile in
-      I.string attr glyph
+    let pos = { x; y } in
+    let tile = Project_t.Grid.get_tile grid pos in
+    match Hashtbl.find_opt entity_map (x, y) with
+    | Some `Player ->
+        let glyph, attr = player_glyph in
+        I.string attr glyph
+    | Some (`Enemy etype) ->
+        let glyph, attr = enemy_glyph etype in
+        I.string attr glyph
+    | Some (`Projectile (dir, owner_type, typ, effec)) ->
+        let glyph, attr = projectile_glyph dir owner_type typ effec in
+        I.string attr glyph
+    | Some `Aoe ->
+        let glyph, attr = aoe_glyph in
+        I.string attr glyph
+    | None ->
+        let glyph, attr = tile_glyph tile in
+        I.string attr glyph
 
 (* render board *)
 let render_board (state : game_state) : image =
-  let grid = state.grid in
-  let entity_map = make_entity_map state in
-  let rows = List.init grid.height (fun y ->
-    let cells = List.init grid.width (fun x ->
-      render_cell grid entity_map x y
+    let grid = state.grid in
+    let entity_map = make_entity_map state in
+    let rows = List.init grid.height (fun y ->
+        let cells = List.init grid.width (fun x ->
+            render_cell grid entity_map x y
+        ) in
+        I.hcat cells
     ) in
-    I.hcat cells
-  ) in
   I.vcat rows
 
 (* render terminal border and black bg *)

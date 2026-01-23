@@ -7,6 +7,7 @@ type tile =
     | Wall
     | Spike
     | Lava
+    | Barrel
 
 type enemy_type =
     | Goblin
@@ -22,6 +23,7 @@ type enemy = {
 
 type projectile_type =
     | Arrow
+    | Barrel
 
 type projectile_effect =
     | Normal
@@ -34,6 +36,16 @@ type projectile = {
     effec: projectile_effect;
     owner_id: int;
     owner_type: enemy_type;
+}
+
+type aoe_type =
+    | Explosion
+
+type aoe = {
+    pos: pos;
+    typ: aoe_type;
+    dimension: int;
+    turns_left: int;
 }
 
 type player = {
@@ -63,6 +75,7 @@ type game_state = {
     player: player;
     enemies: enemy list;
     projectiles: projectile list;
+    aoes: aoe list;
     grid: grid;
     floor: int;
     turn: int;

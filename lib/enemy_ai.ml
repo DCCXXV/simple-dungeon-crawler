@@ -88,8 +88,9 @@ let update_enemies enemies player_pos grid turn =
             Some { e with pos = new_pos; hp = new_hp }
     ) enemies
 
-let move_projectiles projectiles grid player_pos enemies =
-    List.filter_map (fun (p : projectile) ->
+let move_projectiles projectiles aoes grid player_pos enemies =
+    let new_aoes = ref aoes in
+    let new_projectiles = List.filter_map (fun (p : projectile) ->
         let new_pos = Logic.apply_direction p.pos p.direction in
         if not (Grid.in_bounds grid new_pos) then
             None
@@ -98,10 +99,18 @@ let move_projectiles projectiles grid player_pos enemies =
         else if List.exists (fun (e : enemy) -> e.pos = new_pos) enemies then
             None
         else match Grid.get_tile grid new_pos with
-            | Wall -> None
+            | Wall ->
+                (match p.typ with
+                | Barrel ->
+                    new_aoes := { pos = p.pos; typ = Explosion; dimension = 1; turns_left = 1 } :: !new_aoes;
+                    None
+                | _ -> None
+                )
             | Lava -> Some { p with effec = Fire; pos = new_pos }
             | _ -> Some { p with pos = new_pos }
-    ) projectiles
+    ) projectiles in
+    (new_projectiles, !new_aoes)
+
 
 let projectile_hits projectiles grid player_pos enemies =
     let player_damage = ref 0 in
