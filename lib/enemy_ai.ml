@@ -30,10 +30,10 @@ let goblin_move grid enemy_pos player_pos =
     match direction_to_target enemy_pos player_pos with
     | None -> (enemy_pos, 0)
     | Some dir ->
-        let new_pos = Logic.apply_direction enemy_pos dir in
+        let new_pos = Grid.apply_direction enemy_pos dir in
         if new_pos = player_pos then
             (enemy_pos, 0)
-        else if Logic.is_walkable grid new_pos then
+        else if Grid.is_walkable grid new_pos then
             (new_pos, hazard_damage grid new_pos)
         else
             (enemy_pos, 0)
@@ -46,10 +46,10 @@ let brute_move grid enemy_pos player_pos turn =
         match direction_to_target enemy_pos player_pos with
         | None -> (enemy_pos, 0)
         | Some dir ->
-            let new_pos = Logic.apply_direction enemy_pos dir in
+            let new_pos = Grid.apply_direction enemy_pos dir in
             if new_pos = player_pos then
                 (enemy_pos, 0)
-            else if Logic.is_walkable grid new_pos then
+            else if Grid.is_walkable grid new_pos then
                 (new_pos, hazard_damage grid new_pos)
             else
                 (enemy_pos, 0)
@@ -91,7 +91,7 @@ let update_enemies enemies player_pos grid turn =
 let move_projectiles projectiles aoes grid player_pos enemies =
     let new_aoes = ref aoes in
     let new_projectiles = List.filter_map (fun (p : projectile) ->
-        let new_pos = Logic.apply_direction p.pos p.direction in
+        let new_pos = Grid.apply_direction p.pos p.direction in
         if not (Grid.in_bounds grid new_pos) then
             None
         else if new_pos = player_pos then
@@ -116,7 +116,7 @@ let projectile_hits projectiles grid player_pos enemies =
     let player_damage = ref 0 in
     let enemy_damage = ref [] in
     List.iter (fun (p : projectile) ->
-        let new_pos = Logic.apply_direction p.pos p.direction in
+        let new_pos = Grid.apply_direction p.pos p.direction in
         if Grid.in_bounds grid new_pos then begin
             if new_pos = player_pos then
                 let p_dmg = match p.effec with
@@ -157,7 +157,7 @@ let archers_shoot enemies projectiles player_pos grid =
             else
                 (match line_of_sight e.pos player_pos with
                 | Some dir ->
-                    let spawn_pos = Logic.apply_direction e.pos dir in
+                    let spawn_pos = Grid.apply_direction e.pos dir in
                     if Grid.in_bounds grid spawn_pos &&
                        Grid.get_tile grid spawn_pos <> Wall then
                         { pos = spawn_pos; direction = dir; typ = Arrow; effec = Normal ; owner_id = e.id; owner_type = e.enemy_type } :: acc

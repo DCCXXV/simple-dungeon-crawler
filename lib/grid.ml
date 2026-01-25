@@ -56,3 +56,25 @@ let generate width height floor_num =
     if get_tile grid {x; y} = Empty then
         set_tile grid {x; y} Barrel;
     grid
+
+let random_pos grid =
+    let rec find () =
+        let x = 1 + Random.int (grid.width - 2) in
+        let y = 1 + Random.int (grid.height - 2) in
+        let pos = { x; y } in
+        match get_tile grid pos with
+        | Wall | Spike | Lava -> find ()
+        | _ -> pos
+    in find ()
+
+let apply_direction pos = function
+    | North -> { pos with y = pos.y - 1 }
+    | South -> { pos with y = pos.y + 1 }
+    | East -> { pos with x = pos.x + 1 }
+    | West -> { pos with x = pos.x - 1 }
+
+let is_walkable grid pos =
+    in_bounds grid pos &&
+    match get_tile grid pos with
+    | Wall -> false
+    | _ -> true

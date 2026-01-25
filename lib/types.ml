@@ -86,3 +86,8 @@ type action_result =
     | Continue of game_state
     | PlayerDeath
     | FloorComplete
+
+let enemy_name = function
+    | Goblin -> "Goblin"
+    | Archer -> "Archer"
+    | Brute -> "Brute"
