@@ -4,7 +4,7 @@ open Notty_unix
 let () =
     if Array.length Sys.argv > 1 && (Sys.argv.(1) = "--help" || Sys.argv.(1) = "-h") then begin
         print_endline "Simple ascii dungeon crawler, clear 3 floors to win";
-        print_endline "";
+        print_endline "Hint: dont try to attack the enemies, use the enviroment!";
         print_endline "Controls:";
         print_endline "  Arrow keys  Move/Attack";
         print_endline "  q/Esc       Quit";

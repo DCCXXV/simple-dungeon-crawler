@@ -223,7 +223,7 @@ let render_screen ~term_w:_ ~term_h (state : game_state) : image =
   let hud = render_hud_vertical state board_h in
   let board_with_hud = I.(hud <|> board) in
 
-  let inner_w = hud_width + 1 + state.grid.width in
+  let inner_w = hud_width + 1 + state.grid.width + 20 in
   let msg_box_h = 5 in
   let inner_h = min (term_h - 2) (board_h + 1 + msg_box_h) in
 

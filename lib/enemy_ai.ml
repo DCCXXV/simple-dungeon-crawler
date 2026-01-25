@@ -89,28 +89,50 @@ let update_enemies enemies player_pos grid turn =
     ) enemies
 
 let move_projectiles projectiles aoes grid player_pos enemies =
+    let updated_grid = ref grid in
     let new_aoes = ref aoes in
     let new_projectiles = List.filter_map (fun (p : projectile) ->
         let new_pos = Grid.apply_direction p.pos p.direction in
         if not (Grid.in_bounds grid new_pos) then
             None
         else if new_pos = player_pos then
-            None
+            match p.typ with
+            | Barrel ->  (* if barrel explode and disappear *)
+                new_aoes := { pos = p.pos; typ = Explosion; dimension = 1; turns_left = 1 } :: !new_aoes;
+                None
+            | _ -> (* by default just disappear *)
+                None
         else if List.exists (fun (e : enemy) -> e.pos = new_pos) enemies then
-            None
+            match p.typ with
+            | Barrel ->  (* if barrel explode and disappear *)
+                new_aoes := { pos = p.pos; typ = Explosion; dimension = 1; turns_left = 1 } :: !new_aoes;
+                None
+            | _ -> (* by default just disappear *)
+                None
         else match Grid.get_tile grid new_pos with
             | Wall ->
-                (match p.typ with
-                | Barrel ->
+                begin match p.typ with
+                | Barrel -> (* if barrel explode and disappear *)
                     new_aoes := { pos = p.pos; typ = Explosion; dimension = 1; turns_left = 1 } :: !new_aoes;
                     None
-                | _ -> None
-                )
-            | Lava -> Some { p with effec = Fire; pos = new_pos }
+                | _ -> (* by default just disappear *)
+                    None
+                end
+            | Lava ->
+                begin match p.typ with
+                | Barrel -> (* if barrel make a lava pool *)
+                    for dx = -1 to 1 do
+                        for dy = -1 to 1 do
+                            Grid.set_tile grid { x = new_pos.x + dx; y = new_pos.y + dy } Lava
+                        done
+                    done;
+                    None
+                | _ -> (* by default add fire effect *)
+                    Some { p with effec = Fire; pos = new_pos }
+                end
             | _ -> Some { p with pos = new_pos }
     ) projectiles in
-    (new_projectiles, !new_aoes)
-
+    (new_projectiles, !new_aoes, !updated_grid)
 
 let projectile_hits projectiles grid player_pos enemies =
     let player_damage = ref 0 in

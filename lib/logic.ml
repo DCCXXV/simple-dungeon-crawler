@@ -158,7 +158,7 @@ let process_turn state action =
             Some e
     ) new_enemies in
 
-    let (moved_projectiles, new_aoes) = Enemy_ai.move_projectiles
+    let (moved_projectiles, new_aoes, updated_grid) = Enemy_ai.move_projectiles
         new_state.projectiles [] new_state.grid new_state.player.pos enemies_after_hits in
 
     let in_aoe_range (a : aoe) pos =
@@ -213,5 +213,6 @@ let process_turn state action =
         enemies = enemies_after_aoe;
         projectiles = new_projectiles;
         aoes = remaining_aoes;
+        grid = updated_grid;
     } in
     (final_state, List.rev !msgs)
